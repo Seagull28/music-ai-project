@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 def separate_audio(input_file):
-    Separates audio using memory-optimized settings for Demucs.
+    #Separates audio using memory-optimized settings for Demucs.
     
     print(f"--- Starting Optimized AI Separation: {input_file} ---")
     
@@ -49,35 +49,24 @@ if __name__ == "__main__":
 import os
 import sys
 
-# 1. FIX: Manually add FFmpeg DLLs to the Python search path (Required for Windows)
-# Ensure this path matches where you extracted the "full-shared" FFmpeg
 ffmpeg_bin = r"C:\ffmpeg\bin"
 if os.path.exists(ffmpeg_bin):
     os.add_dll_directory(ffmpeg_bin)
-else:
-    print(f"CRITICAL: FFmpeg not found at {ffmpeg_bin}. Please install full-shared version.")
 
-# 2. FIX: Bypass libtorchcodec/torchaudio issues by using the 'soundfile' backend
-# This avoids the "Could not load libtorchcodec" error entirely.
 os.environ["TORCHAUDIO_USE_BACKEND"] = "soundfile"
 
 try:
-    import demucs.api
     import torch
-except ImportError:
-    print("Error: Demucs or Torch not found. Run: pip install demucs soundfile")
+    import demucs.api
+    import soundfile
+except ImportError as e:
+    print(f"Import Error: {e}")
+    print(f"Executable: {sys.executable}")
     sys.exit(1)
 
-def run_optimized_separation(input_path):
-    """
-    Uses the Demucs API for direct control over memory and audio processing.
-    """
-    print(f"--- Starting Separation: {input_path} ---")
+def run_separation(input_path):
+    print(f"Processing: {input_path}")
     
-    # Initialize the separator with memory-optimized parameters
-    # 'htdemucs' is the high-quality model.
-    # 'segment=7': Process in small chunks to save RAM (Max for HTDemucs is ~7.8s).
-    # 'device="cpu"': Recommended if your GPU has less than 8GB VRAM.
     separator = demucs.api.Separator(
         model="htdemucs",
         device="cpu", 
@@ -86,30 +75,26 @@ def run_optimized_separation(input_path):
     )
 
     try:
-        # Separate the file
-        # The API handles loading and splitting internally
         origin, separated = separator.separate_audio_file(input_path)
         
-        # Create output directory
-        out_dir = os.path.join("separated", "htdemucs", os.path.splitext(input_path)[0])
+        base_name = os.path.splitext(input_path)[0]
+        out_dir = os.path.join("separated", "htdemucs", base_name)
         os.makedirs(out_dir, exist_ok=True)
 
-        # Save each stem (vocals, drums, bass, other)
         for name, tensor in separated.items():
             stem_path = os.path.join(out_dir, f"{name}.wav")
             demucs.api.save_audio(tensor, stem_path, samplerate=separator.samplerate)
             print(f"Saved: {stem_path}")
 
-        print("\n✅ Separation Complete!")
+        print("Done.")
 
     except Exception as e:
-        print(f"\n❌ Process failed: {e}")
-        print("Tip: If this is a memory crash, try an even smaller 'segment' (e.g., 4).")
+        print(f"Failed: {e}")
 
 if __name__ == "__main__":
-    SONG_NAME = "test_song.mp3"
-    
-    if os.path.exists(SONG_NAME):
-        run_optimized_separation(SONG_NAME)
+    file_to_process = "test_song.mp3"
+    if os.path.exists(file_to_process):
+        run_separation(file_to_process)
     else:
-        print(f"❌ File not found: {SONG_NAME}")
+        print(f"File not found: {file_to_process}")
+
