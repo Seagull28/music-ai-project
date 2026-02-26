@@ -26,8 +26,9 @@ if __name__ == "__main__":
         print(f"❌ File not found: {target_song}")
         print("Please place an mp3 file named 'test_song.mp3' in this folder.")
 """
-import subprocess
 import os
+os.add_dll_directory(r"C:\ffmpeg\bin")
+import subprocess
 import sys
 
 def separate_audio(input_file):
