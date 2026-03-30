@@ -37,7 +37,7 @@ def run_bulletproof_separation(input_path):
         print("Tip: Close all other apps and ensure you have 2GB+ free RAM.")
 
 if __name__ == "__main__":
-    target = "test_song.mp3"
+    target = "test_song.flac"
     
     if os.path.exists(target):
         run_bulletproof_separation(target)
