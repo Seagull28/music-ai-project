@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{TITLE}}</title>
+</head>
+
+<body>
+
+<h1>{{TITLE}}</h1>
+
+<div id="osmd"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay/build/opensheetmusicdisplay.min.js"></script>
+
+<script>
+
+const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmd");
+
+osmd.load("{{MUSICXML_PATH}}").then(() => {
+    osmd.render();
+});
+
+</script>
+
+</body>
+</html>

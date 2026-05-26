@@ -1,0 +1,67 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Output/generated files
+output/
+generated/
+exports/
+
+# Logs
+*.log
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Audio cache / AI model cache
+.cache/
+huggingface/
+torch/
+demucs/
+
+# Large AI/model files
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# MIDI temp
+*.mid.bak
+
+# FFmpeg temp
+ffmpeg2pass-0.log
+
+# PDF temporary exports
+*.aux
+*.out
+
+# Build folders
+build/
+dist/
+
+# Node modules (future web visualizer)
+node_modules/
+
+# Environment variables
+.env

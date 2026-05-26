@@ -1,0 +1,14 @@
+numpy<2
+torch==2.2.2
+torchaudio==2.2.2
+faster-whisper
+basic-pitch
+pretty_midi
+music21
+librosa
+soundfile
+demucs
+ffmpeg-python
+fpdf2
+mido
+pygame
