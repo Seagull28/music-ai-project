@@ -1,26 +1,15 @@
 numpy<2
 
-torch==2.2.2
-torchaudio==2.2.2
-
-faster-whisper
-ctranslate2==4.4.0
-
-basic-pitch
-demucs
-
-pretty_midi
-music21
-mido
+streamlit
 
 librosa
 soundfile
+pretty_midi
+music21
+mido
 pydub
-ffmpeg-python
-
-fpdf2
 jinja2
+fpdf2
 
-streamlit
-
-pygame
+faster-whisper
+ctranslate2==4.4.0
