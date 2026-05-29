@@ -1,6 +1,5 @@
 import json
 import os
-import base64
 
 def generate_html_sheet(
     musicxml_path,
@@ -9,34 +8,24 @@ def generate_html_sheet(
     instrument,
     audio_path,
     midi_path,
-    timeline_data
+    timeline_data_json_str
 ):
-    # 1. Defensively load the JSON note payload
-    if isinstance(timeline_data, str) and os.path.exists(timeline_data):
-        with open(timeline_data, "r", encoding="utf-8") as f:
+    # 1. Safely handle the json payload without crashing
+    if isinstance(timeline_data_json_str, str) and timeline_data_json_str.strip().startswith('{'):
+        final_json_payload = timeline_data_json_str
+    elif timeline_data_json_str and os.path.exists(str(timeline_data_json_str)):
+        with open(timeline_data_json_str, "r", encoding="utf-8") as f:
             final_json_payload = f.read()
-    elif isinstance(timeline_data, (dict, list)):
-        final_json_payload = json.dumps(timeline_data)
-    elif isinstance(timeline_data, str) and timeline_data.strip().startswith('{'):
-        final_json_payload = timeline_data
     else:
         final_json_payload = '{"notes":[]}'
 
-    # 2. STRATEGY CHANGE: Locate file and compile Base64 String Asset Data URI
-    # This prevents sandbox path routing breakage on cloud deployment
-    audio_disk_path = os.path.join("output", song_name, "stems", "htdemucs", song_name, "no_vocals.wav")
-    
-    if os.path.exists(audio_disk_path):
-        with open(audio_disk_path, "rb") as audio_file:
-            encoded_bytes = base64.b64encode(audio_file.read()).decode("utf-8")
-        audio_src_payload = f"data:audio/wav;base64,{encoded_bytes}"
-    else:
-        # Fallback to structural server route pathing if file extraction mismatch occurs
-        audio_src_payload = f"/{song_name}/stems/htdemucs/{song_name}/no_vocals.wav"
-
+    # stem_separator.py passes cleaned.wav to demucs
+    # demucs saves to: output/{song_name}/stems/htdemucs/cleaned/no_vocals.wav
+    # serve_results.py serves from output/ as root → URL is /{song_name}/stems/...
+    audio_rel_url = f"/{song_name}/stems/htdemucs/cleaned/no_vocals.wav"
     instrument_name = str(instrument).upper()
 
-    # 3. Formulate pure HTML template
+    # 3. Write out the code pieces carefully to avoid syntax or brace errors
     part_1_header = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -48,31 +37,30 @@ def generate_html_sheet(
             color: #c5c6c7;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 30px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }}
         h1 {{
             color: #46a29f;
-            margin: 5px 0;
+            margin-bottom: 5px;
             font-weight: 300;
             letter-spacing: 2px;
-            font-size: 24px;
         }}
         .subtitle {{
             color: #66fcf1;
-            margin-bottom: 15px;
-            font-size: 11px;
+            margin-bottom: 25px;
+            font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 2px;
         }}
         .player-panel {{
             background: #1f2833;
-            padding: 10px 25px;
+            padding: 15px 35px;
             border-radius: 50px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-            margin-bottom: 20px;
+            margin-bottom: 35px;
             display: flex;
             align-items: center;
             gap: 20px;
@@ -82,25 +70,25 @@ def generate_html_sheet(
             outline: none;
         }}
         .status-mon {{
-            font-size: 11px;
+            font-size: 12px;
             color: #66fcf1;
             font-family: 'Courier New', Courier, monospace;
             font-weight: bold;
         }}
         .piano-scroll-frame {{
             background: #111111;
-            padding: 15px;
+            padding: 20px;
             border-radius: 12px;
             box-shadow: inset 0 0 20px #000, 0 10px 40px rgba(0,0,0,0.8);
             width: 100%;
-            max-width: 1260px;
+            max-width: 1300px;
             overflow-x: auto;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }}
         #piano-bed {{
             position: relative;
             display: block;
-            height: 150px;
+            height: 180px;
             width: 1248px;
             background: #000;
             user-select: none;
@@ -144,11 +132,20 @@ def generate_html_sheet(
 
     <div class="player-panel">
         <audio id="main-audio" controls>
-            <source src="{audio_src_payload}" type="audio/wav">
+            <source src="{audio_rel_url}" type="audio/wav">
             Your browser does not support the audio element.
         </audio>
         <div class="status-mon" id="playback-time">TIME: 0.00s</div>
+        <div class="status-mon" id="debug-info" style="font-size:10px; color:#46a29f; margin-left:10px;"></div>
     </div>
+
+    <script>
+    // Audio load error handler — shows actual path for debugging
+    document.getElementById('main-audio').addEventListener('error', function() {{
+        document.getElementById('playback-time').innerText = '⚠ Audio not found: {audio_rel_url}';
+        console.error('Audio failed to load:', '{audio_rel_url}');
+    }});
+    </script>
 
     <div class="piano-scroll-frame">
         <div id="piano-bed"></div>
@@ -157,7 +154,7 @@ def generate_html_sheet(
 <script>
 """
 
-    # 4. Formulate pure JavaScript section
+    # Pure JavaScript payload script string without confusing Python f-string bracket escaping
     part_2_javascript = f"""
     const timelineData = {final_json_payload};
     const noteArray = timelineData.notes || [];
@@ -165,6 +162,12 @@ def generate_html_sheet(
     const pianoBed = document.getElementById('piano-bed');
     const audioTrack = document.getElementById('main-audio');
     const displayTime = document.getElementById('playback-time');
+    const debugInfo  = document.getElementById('debug-info');
+
+    // Show note count on load so we know data arrived
+    if (debugInfo) {{
+        debugInfo.innerText = `NOTES LOADED: ${{noteArray.length}}`;
+    }}
 
     function checkBlackKey(midiNumber) {{
         const noteRemainder = midiNumber % 12;
@@ -202,14 +205,20 @@ def generate_html_sheet(
             elementsMap[m].classList.remove('active-hit');
         }}
 
+        let activeCount = 0;
         for (let i = 0; i < noteArray.length; i++) {{
             const activeNote = noteArray[i];
             if (currentSecs >= activeNote.start && currentSecs <= activeNote.end) {{
                 const targetKey = elementsMap[activeNote.pitch];
                 if (targetKey) {{
                     targetKey.classList.add('active-hit');
+                    activeCount++;
                 }}
             }}
+        }}
+
+        if (debugInfo) {{
+            debugInfo.innerText = `NOTES: ${{noteArray.length}} | ACTIVE: ${{activeCount}}`;
         }}
 
         requestAnimationFrame(processFrame);
@@ -221,7 +230,7 @@ def generate_html_sheet(
 </html>
 """
 
-    # 5. Output file write execution
+    # Combined write out
     with open(output_html, "w", encoding="utf-8") as f:
         f.write(part_1_header + part_2_javascript)
     print(f"   └─ HTML Clean Audio Sync Complete: {output_html}")
