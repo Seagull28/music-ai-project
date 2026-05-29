@@ -1,7 +1,5 @@
 numpy<2
-
 streamlit
-
 librosa
 soundfile
 pretty_midi
@@ -10,6 +8,4 @@ mido
 pydub
 jinja2
 fpdf2
-
 faster-whisper
-ctranslate2==4.4.0
